@@ -2,6 +2,7 @@
 
 Create local copies of media in HTML documents and rewrite documents with the local media
 
+## Example
 ```console
 $ cat in.html 
 <html><body><img src="https://i.redd.it/ueavss99jvba1.jpg"/></body></html>
