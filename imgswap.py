@@ -9,6 +9,7 @@ import sys
 import time
 
 import magic
+from termcolor import colored
 from bs4 import BeautifulSoup
 
 EXTMAP = {
@@ -56,7 +57,7 @@ class Media:
     def process(self, kind: str, url: str) -> str | None:
         if url in self.known:
             self.qty_known += 1
-            print("{}: from known".format(self.known[url]))
+            print(colored("[ ] " + url, "blue"))
             return self.known[url]
 
         time.sleep(0.25)
@@ -64,7 +65,7 @@ class Media:
             response = requests.get(url)
         except:
             self.qty_fail += 1
-            print("Error downloading {}".format(url))
+            print(colored("[!] " + url, "red"))
             self.known[url] = None
             return None
         if not response.ok:
@@ -84,7 +85,7 @@ class Media:
         filename = "{}.{}".format(sha, extension)
         open(os.path.join(self.path, filename), "wb").write(response.content)
         self.known[url] = filename
-        print("{}: from remote".format(filename))
+        print(colored("[+] " + url, "green"))
         self.qty_fetch += 1
         return filename
 
