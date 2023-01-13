@@ -12,11 +12,22 @@ import magic
 from bs4 import BeautifulSoup
 
 EXTMAP = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/gif": "gif",
-    "image/webp": "webp",
-    "image/avif": "avif",
+    "img": {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/gif": "gif",
+        "image/webp": "webp",
+        "image/avif": "avif",
+    },
+    "video": {
+        "video/mp4": "mp4",
+        "video/webm": "webm",
+    },
+    "audio": {
+        "audio/ogg": "ogg",
+        "audio/flac": "flac",
+        "audio/mpeg": "mp3",
+    },
 }
 
 class Media:
@@ -42,7 +53,7 @@ class Media:
         return "Media({})".format(repr(self.path))
 
     """Return the local filename coresponding to a URL, downloading first if applicable"""
-    def process(self, url: str) -> str | None:
+    def process(self, kind: str, url: str) -> str | None:
         if url in self.known:
             self.qty_known += 1
             print("{}: from known".format(self.known[url]))
@@ -62,8 +73,8 @@ class Media:
             return None
 
         mime = magic.from_buffer(response.content, mime=True)
-        if mime in EXTMAP:
-            extension = EXTMAP[mime]
+        if mime in EXTMAP[kind]:
+            extension = EXTMAP[kind][mime]
         else:
             self.qty_fail += 1
             self.known[url] = None
@@ -100,13 +111,31 @@ media = Media(args.media)
 with open(args.infile, "rb") as infile:
     soup = BeautifulSoup(infile, features="lxml")
 
-# Iterate over elements, processing each <img>
+# Process each <img>
 for elem in soup.find_all("img"):
-    local = media.process(elem["src"])
+    local = media.process("img", elem["src"])
     if local is None:
         continue
     elem["data-imgswap-src"] = elem["src"]
     elem["src"] = os.path.join("imgswap_media", local)
+
+# Process each <video>
+for elem in soup.find_all("video"):
+    for source in elem.find_all("source"):
+        local = media.process("video", source["src"])
+        if local is None:
+            continue
+        source["data-imgswap-src"] = source["src"]
+        source["src"] = os.path.join("imgswap_media", local)
+
+# Process each <audio>
+for elem in soup.find_all("audio"):
+    for source in elem.find_all("source"):
+        local = media.process("audio", source["src"])
+        if local is None:
+            continue
+        source["data-imgswap-src"] = source["src"]
+        source["src"] = os.path.join("imgswap_media", local)
 
 media.save_known()
 
